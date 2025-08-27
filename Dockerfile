@@ -1,7 +1,7 @@
 # Imagen base con PHP 8.2 y Apache
 FROM php:8.2-apache
 
-# Instalar dependencias del sistema
+# Instalar dependencias necesarias
 RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
     libpng-dev \
@@ -11,11 +11,10 @@ RUN apt-get update && apt-get install -y \
     unzip \
     git \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd pdo pdo_mysql curl bcmath mbstring zip intl opcache \
-    && docker-php-ext-install -j$(nproc) xmlwriter xmlreader \
+    && docker-php-ext-install -j$(nproc) gd pdo pdo_mysql curl bcmath mbstring zip intl opcache xml \
     && rm -rf /var/lib/apt/lists/*
 
-# Instalar Composer globalmente
+# Instalar Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 # Habilitar mod_rewrite y mod_headers
@@ -30,7 +29,7 @@ COPY . .
 # Instalar dependencias de Laravel
 RUN composer install --no-dev --optimize-autoloader
 
-# Dar permisos a storage y bootstrap/cache
+# Dar permisos correctos
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 storage bootstrap/cache
 
@@ -42,7 +41,7 @@ RUN php artisan config:clear \
     && php artisan route:cache \
     && php artisan view:cache
 
-# Cambiar DocumentRoot a /public
+# Configurar DocumentRoot hacia /public
 RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf \
     && sed -i 's|/var/www/|/var/www/html/public|g' /etc/apache2/apache2.conf
 
