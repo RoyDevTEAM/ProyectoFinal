@@ -1,35 +1,49 @@
-# Imagen base con PHP y Apache
+# Imagen base con PHP 8.2 y Apache
 FROM php:8.2-apache
 
-# Instalar dependencias de PHP necesarias y Composer
+# Instalar dependencias necesarias
 RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
     libpng-dev \
     libjpeg-dev \
     libfreetype6-dev \
+    libzip-dev \
+    unzip \
     git \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd pdo pdo_mysql curl \
+    && docker-php-ext-install gd pdo pdo_mysql curl bcmath mbstring zip xml \
     && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Habilitar mod_rewrite y mod_headers para .htaccess
+# Habilitar mod_rewrite y mod_headers para Laravel (.htaccess)
 RUN a2enmod rewrite headers
 
-# Establecer el directorio de trabajo
+# Establecer directorio de trabajo
 WORKDIR /var/www/html
 
 # Copiar archivos del proyecto al contenedor
 COPY . .
 
-# Instalar dependencias con Composer
+# Instalar dependencias de Laravel
 RUN composer install --no-dev --optimize-autoloader
 
-# Establecer permisos adecuados
-RUN chown -R www-data:www-data /var/www/html
-RUN chmod -R 755 /var/www/html
+# Dar permisos correctos a storage y bootstrap/cache
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 775 storage bootstrap/cache
 
-# Exponer el puerto 80
+# Optimizar Laravel
+RUN php artisan config:clear \
+    && php artisan route:clear \
+    && php artisan view:clear \
+    && php artisan config:cache \
+    && php artisan route:cache \
+    && php artisan view:cache
+
+# Establecer DocumentRoot en /public
+RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf \
+    && sed -i 's|/var/www/|/var/www/html/public|g' /etc/apache2/apache2.conf
+
+# Exponer puerto 80
 EXPOSE 80
 
-# Comando para iniciar Apache
+# Iniciar Apache
 CMD ["apache2-foreground"]
