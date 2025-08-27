@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  php-apache:
+    build: .
+    container_name: fcm-php-container
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+    environment:
+      - COMPOSER_ALLOW_SUPERUSER=1
+    restart: always
