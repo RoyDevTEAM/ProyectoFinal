@@ -1,5 +1,7 @@
-# Imagen base con PHP 8.2 y Apache
-FROM php:8.2-apache
+# -------------------------------
+# Imagen base PHP 8.2
+# -------------------------------
+FROM php:8.2-cli
 
 # -------------------------------
 # Instalar dependencias del sistema
@@ -22,11 +24,6 @@ RUN apt-get update && apt-get install -y \
 # Instalar Composer globalmente
 # -------------------------------
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
-
-# -------------------------------
-# Habilitar módulos de Apache
-# -------------------------------
-RUN a2enmod rewrite headers
 
 # -------------------------------
 # Establecer directorio de trabajo
@@ -60,17 +57,12 @@ RUN php artisan config:clear \
     && php artisan view:cache
 
 # -------------------------------
-# Configurar Apache para Laravel
+# Puerto asignado por Render
 # -------------------------------
-RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf \
-    && sed -i 's|/var/www/|/var/www/html/public|g' /etc/apache2/apache2.conf
+ENV PORT 10000
+EXPOSE $PORT
 
 # -------------------------------
-# Exponer puerto 80
+# Iniciar Laravel con PHP Built-in server
 # -------------------------------
-EXPOSE 80
-
-# -------------------------------
-# Iniciar Apache
-# -------------------------------
-CMD ["apache2-foreground"]
+CMD ["php", "-S", "0.0.0.0:10000", "-t", "public"]
